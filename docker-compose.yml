@@ -1,0 +1,71 @@
+version: "3.8"
+
+# ============================================================
+# SuperPoint — docker compose 設定
+#
+# ディレクトリ構成の想定:
+#   /path/to/project/
+#   ├── SuperPoint/          ← このリポジトリ (ソースコード)
+#   ├── data/                ← データセット格納ディレクトリ
+#   │   ├── COCO/
+#   │   │   ├── train2014/
+#   │   │   └── val2014/
+#   │   ├── HPatches/
+#   │   └── synthetic_shapes/  (自動生成)
+#   └── experiments/         ← 学習結果・チェックポイント格納
+#       ├── magic-point_synth/
+#       └── saved_models/
+# ============================================================
+
+services:
+  superpoint:
+    build:
+      context: .          # Dockerfile のある場所
+      dockerfile: Dockerfile
+    image: superpoint:tf1.12-cuda9
+
+    # GPU の有効化
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    # ── ボリュームマウント ────────────────────────────────────
+    # ホスト側のパスを環境変数で切り替えられるようにしている
+    # .env ファイルで HOST_REPO / HOST_DATA / HOST_EXPER を指定する
+    volumes:
+      - ${HOST_REPO:-.}:/workspace           # ソースコード (リアルタイム同期)
+      - ${HOST_DATA:-./data}:/data           # データセット
+      - ${HOST_EXPER:-./experiments}:/experiments  # 学習結果
+
+    # ── 環境変数 ─────────────────────────────────────────────
+    environment:
+      - DATA_PATH=/data
+      - EXPER_PATH=/experiments
+      - TMPDIR=/tmp
+      - PYTHONPATH=/workspace
+      # CUDA_VISIBLE_DEVICES を指定する場合はコメントアウトを解除
+      - CUDA_VISIBLE_DEVICES=0
+
+    # ── インタラクティブ操作用 ────────────────────────────────
+    stdin_open: true
+    tty: true
+
+    # ── 作業ディレクトリ ──────────────────────────────────────
+    working_dir: /workspace/superpoint
+
+    # ── Jupyter 用ポートマッピング ────────────────────────────
+    ports:
+      - "8888:8888"
+
+    # コンテナ名
+    container_name: superpoint_dev
+
+    # ── shm_size: OpenCV / TF のマルチスレッド処理に必要 ─────
+    shm_size: "8gb"
+
+    # ── ネットワーク ──────────────────────────────────────────
+    network_mode: host   # ホストネットワーク（Jupyter アクセス簡略化）
