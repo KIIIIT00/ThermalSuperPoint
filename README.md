@@ -112,6 +112,17 @@ Homography estimation on HPatches computed with a maximum of 1000 points detecte
 
 ## Installation
 
+### Dokcer
+```shell
+$ docker compose build
+# インタラクティブシェルとして起動
+$ docker compose run --rm superpoint bash
+
+# または、バックグラウンドで起動してからアタッチ
+$ docker compose up -d
+$ docker exec -it superpoint_dev bash
+```
+
 ```shell
 make install  # install the Python requirements and setup the paths
 ```
